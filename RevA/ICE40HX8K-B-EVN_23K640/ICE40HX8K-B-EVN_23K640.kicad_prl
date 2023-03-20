@@ -62,8 +62,8 @@
       35,
       36
     ],
-    "visible_layers": "ffc1000_ffffffff",
-    "zone_display_mode": 0
+    "visible_layers": "ffc1010_ffffffff",
+    "zone_display_mode": 1
   },
   "meta": {
     "filename": "ICE40HX8K-B-EVN_23K640.kicad_prl",

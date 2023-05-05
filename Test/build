@@ -1,0 +1,13 @@
+#!/bin/bash
+
+verilator --trace \
+   --cc rtl/x_driver_test.sv \
+   --cc rtl/x_driver.sv \
+   --cc rtl/x_uart_tx.sv \
+   --cc rtl/x_uart_rx.sv \
+   --cc 23K640/rtl/x_23K640_sck.sv \
+   --cc 23K640/rtl/x_23K640_data.sv \
+   --exe verif/x_test_tb.cpp 
+
+make -C obj_dir -f Vx_test.mk Vx_test
+

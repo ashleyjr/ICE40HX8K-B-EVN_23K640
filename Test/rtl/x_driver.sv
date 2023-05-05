@@ -8,13 +8,13 @@ module x_driver #(
    input    logic [7:0]    i_test_data,
    output   logic          o_test_valid,
    output   logic [7:0]    o_test_data,
-   // 23K640 Side
-   input    logic          i_accept,
+   // 23K640 Side,
    output   logic          o_rd_n_wr,
    output   logic [15:0]   o_addr,
    output   logic [7:0]    o_wdata,
    // 23K640 Valid Muxed
    output   logic [15:0]   o_valid,
+   input    logic [15:0]   i_accept,
    input    logic [15:0]   i_ready,
    input    logic [7:0]    i_rdata_0,
    input    logic [7:0]    i_rdata_1,
@@ -38,12 +38,12 @@ module x_driver #(
    logic [3:0]    sel_q;
     
    logic          wdata_en;
-   logic [7:0]    wdata_d, 
-   logic [7:0]    wdata_q, 
+   logic [7:0]    wdata_d; 
+   logic [7:0]    wdata_q; 
    
    logic          rdata_en;
-   logic [7:0]    rdata_d, 
-   logic [7:0]    rdata_q, 
+   logic [7:0]    rdata_d; 
+   logic [7:0]    rdata_q; 
 
    logic          rd_n_wr_en;
    logic          rd_n_wr_d;
@@ -52,8 +52,16 @@ module x_driver #(
    logic          addr_en;
    logic [15:0]   addr_d;
    logic [15:0]   addr_q;
- 
- 
+
+   logic          valid_start;
+   logic          valid_en;
+   logic          valid_d;
+   logic          valid_q;
+
+   logic          test_rdata;
+   logic          valid_read;
+
+
    // Select
    assign sel_d = i_test_data[7:4];
    
@@ -101,7 +109,7 @@ module x_driver #(
    end   
     
    // rd_n_wr
-   assign rd_n_wr_d = i_rd_n_wr;
+   assign rd_n_wr_d = i_test_data[4];
    
    always_ff@(posedge i_clk or posedge i_rst) begin
       if(i_rst)            rd_n_wr_q <= 'd0;
@@ -117,9 +125,9 @@ module x_driver #(
    end   
    
    // Hold valid
-   assign valid_d = ~i_accept;
+   assign valid_d = ~(|i_accept);
 
-   assign valid_en = valid_start | i_accept;
+   assign valid_en = valid_start | (|i_accept);
    
    always_ff@(posedge i_clk or posedge i_rst) begin
       if(i_rst)            valid_q <= 'd0;
@@ -137,7 +145,7 @@ module x_driver #(
    assign valid_read  = (i_test_data[3:0] == 4'h7) & i_test_valid; 
    
    // Drive Valid
-   assign o_valid = valid_q << sel_q;  
+   assign o_valid = {15'd0,valid_q} << sel_q;  
  
    // Drive Read Not Write
    assign o_rd_n_wr = rd_n_wr_q;

@@ -1,4 +1,4 @@
-module x_driver_tests (
+module x_driver_test (
    input    logic          i_clk,
    input    logic          i_rst,
    // UART

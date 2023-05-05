@@ -9,5 +9,5 @@ verilator --trace \
    --cc 23K640/rtl/x_23K640_data.sv \
    --exe verif/x_test_tb.cpp 
 
-make -C obj_dir -f Vx_test.mk Vx_test
+make -C obj_dir -f Vx_driver_test.mk Vx_driver_test
 

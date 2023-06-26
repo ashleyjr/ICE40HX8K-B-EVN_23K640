@@ -3,14 +3,17 @@
 verilator --trace \
    --cc rtl/x_driver_test.sv \
    --cc rtl/x_driver.sv \
-   --cc rtl/x_uart_tx.sv \
-   --cc rtl/x_uart_rx.sv \
    --cc 23K640/rtl/x_23K640_sck.sv \
    --cc 23K640/rtl/x_23K640_data.sv \
    --cc 23K640/verif/sram_model.cpp \
    --cc 23K640/verif/logger.cpp \
-   --exe verif/x_test_tb.cpp  
-   -I23K640/verif/include/
+   --cc rtl-uart/rtl/x_uart_tx.sv \
+   --cc rtl-uart/rtl/x_uart_rx.sv \
+   --cc rtl-uart/verif/lib/uart_driver.cpp \
+   --cc rtl-uart/verif/lib/uart_sink.cpp \
+   --exe verif/x_test_tb.cpp \
+   -I23K640/verif/include/ \
+   -Irtl-uart/verif/include/
 
 make -C obj_dir -f Vx_driver_test.mk Vx_driver_test
 

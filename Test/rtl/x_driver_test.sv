@@ -103,7 +103,10 @@ module x_driver_test (
 
    assign advance = 1'b1;
 
-   x_uart_rx u_rx(
+   x_uart_rx #(
+      .p_clk_hz      (12000000   ),
+      .p_baud        (115200     )
+   ) u_rx (
       .i_clk         (i_clk      ),
       .i_rst         (i_rst      ),
       .i_rx          (i_rx       ),
@@ -111,7 +114,10 @@ module x_driver_test (
       .o_data        (rx_data    )
    );
 
-   x_uart_tx u_tx(
+   x_uart_tx #(
+      .p_clk_hz      (12000000   ),
+      .p_baud        (115200     )
+   ) u_tx (
       .i_clk         (i_clk      ),
       .i_rst         (i_rst      ),
       .i_data        (tx_data    ),

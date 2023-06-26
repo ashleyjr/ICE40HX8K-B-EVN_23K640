@@ -7,7 +7,11 @@
 #include <stdio.h>
 #include "../23K640/verif/include/logger.h"
 #include "../23K640/verif/include/sram_model.h"
+#include "../rtl-uart/verif/lib/include/uart_driver.h"
+#include "../rtl-uart/verif/lib/include/uart_sink.h"
 
+#define BAUD 115200
+#define CLK 12000000
 #define CYCLES 100000
 
 int main(int argc, char** argv, char** env) {
@@ -18,6 +22,9 @@ int main(int argc, char** argv, char** env) {
    Verilated::traceEverOn(true);
    VerilatedVcdC *m_trace = new VerilatedVcdC; 
    
+   UartSink sink(CLK, BAUD);
+   UartDriver drv(CLK, BAUD, 2);
+  
    Logger logger("logfile.txt", &sim_time);   
    
    SramModel m0(logger); 
@@ -37,9 +44,33 @@ int main(int argc, char** argv, char** env) {
    SramModel mE(logger); 
    SramModel mF(logger); 
 
+   // UART vectors
+   drv.send(0xAA);
+
+   // Setup
    dut->trace(m_trace, 5);
    m_trace->open("waveform.vcd");
    cycles = 0;
+
+   dut->i_clk     = 0;
+   dut->i_rst     = 0;
+   dut->i_rx      = 1;
+   
+   // Tick
+   dut->eval();
+   m_trace->dump(sim_time);  
+   sim_time++;
+   
+   // Reset
+   dut->i_rst = 1;
+   
+   // Tick
+   dut->eval();
+   m_trace->dump(sim_time);  
+   sim_time++;
+
+   // Out of Reset
+   dut->i_rst = 0;
 
    while (cycles < CYCLES) {
       
@@ -143,29 +174,26 @@ int main(int argc, char** argv, char** env) {
          dut->o_sck
       );
       dut->i_si_F = mF.get_so(); 
-
-      // Drive UART
-
-      switch(cycles){
-         case 0:     dut->i_rx = 1;
-                     break;
-         case 100:   dut->i_rx = 0;
-                     break;
-      }
-
-      // Tick
-      dut->eval();
-      m_trace->dump(sim_time); 
-      sim_time++;
-
-      // Rising Edge
-      dut->i_clk = 1;
       
       // Tick
       dut->eval();
       m_trace->dump(sim_time); 
       sim_time++;
+      
+      // Sink UART
+      sink.advance(dut->o_tx);
 
+      // Rising Edge
+      dut->i_clk = 1;
+     
+      // Tick
+      dut->eval();
+      m_trace->dump(sim_time); 
+      sim_time++;
+
+      // Drive in UART
+      dut->i_rx = drv.advance();
+     
       // Cycles
       cycles++;;
    }

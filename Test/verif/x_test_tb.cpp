@@ -14,6 +14,22 @@
 #define CLK 12000000
 #define CYCLES 100000
 
+
+void write(UartDriver * drv, uint16_t addr, uint8_t data){
+   // Select (CMD == 0)
+   // - Bit [15:12] of addr
+   drv->send((addr >> 8) & 0xF0);
+   // Load data (CMD == 1)
+   drv->send((data & 0xF0) | 0x01);
+   drv->send(((data << 4) & 0xF0) | 0x01);
+   // Load address (CMD == 3)
+   drv->send(((addr >> 4) & 0xF0) | 0x03);
+   drv->send(( addr       & 0xF0) | 0x03);
+   drv->send(((addr << 4) & 0xF0) | 0x03);
+   // Write (CMD == 5)
+   drv->send(0x5);
+}
+
 int main(int argc, char** argv, char** env) {
    
    vluint64_t sim_time = 0;
@@ -44,8 +60,12 @@ int main(int argc, char** argv, char** env) {
    SramModel mE(logger); 
    SramModel mF(logger); 
 
-   // UART vectors
-   drv.send(0xAA);
+   write(&drv, 0x0000, 0xAB); 
+   write(&drv, 0x1000, 0xAB); 
+   write(&drv, 0x2000, 0xAB); 
+   write(&drv, 0x3000, 0xAB); 
+
+
 
    // Setup
    dut->trace(m_trace, 5);

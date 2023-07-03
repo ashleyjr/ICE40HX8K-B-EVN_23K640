@@ -137,7 +137,7 @@ module x_driver #(
    // Decode 
    assign sel_en      = (i_test_data[3:0] == 4'h0) & i_test_valid;
    assign wdata_en    = (i_test_data[3:0] == 4'h1) & i_test_valid;
-   assign rdata_en    = (i_test_data[3:0] == 4'h2) & i_test_valid;
+   //assign rdata_en    = (i_test_data[3:0] == 4'h2) & i_test_valid;
    assign addr_en     = (i_test_data[3:0] == 4'h3) & i_test_valid; 
    assign rd_n_wr_en  = (i_test_data[3:0] == 4'h4) & i_test_valid; 
    assign valid_start = (i_test_data[3:0] == 4'h5) & i_test_valid; 
@@ -146,7 +146,10 @@ module x_driver #(
    
    // Drive Valid
    assign o_valid = {15'd0,valid_q} << sel_q;  
- 
+
+   // Drive write data
+   assign o_wdata = wdata_q;
+
    // Drive Read Not Write
    assign o_rd_n_wr = rd_n_wr_q;
 
@@ -154,6 +157,6 @@ module x_driver #(
    assign o_test_valid = test_rdata | valid_read;
 
    // o_test_data
-   assign o_test_data = (test_rdata) ? rdata_q : {7'd0, valid_q};
+   assign o_test_data = rdata_q;
    
 endmodule

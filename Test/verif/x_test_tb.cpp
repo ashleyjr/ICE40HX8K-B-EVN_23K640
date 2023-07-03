@@ -25,9 +25,29 @@ void write(UartDriver * drv, uint16_t addr, uint8_t data){
    // Load address (CMD == 3)
    drv->send(((addr >> 4) & 0xF0) | 0x03);
    drv->send(( addr       & 0xF0) | 0x03);
-   drv->send(((addr << 4) & 0xF0) | 0x03);
-   // Write (CMD == 5)
+   drv->send(((addr << 4) & 0xF0) | 0x03); 
+   // Read Mode (CMD == 4)
+   drv->send(0x4);
+   // Valid (CMD == 5)
    drv->send(0x5);
+}
+
+void read(UartDriver * drv, UartSink * sink, uint16_t addr, uint8_t check){
+   // Select (CMD == 0)
+   // - Bit [15:12] of addr
+   drv->send((addr >> 8) & 0xF0);
+   // Load address (CMD == 3)
+   drv->send(((addr >> 4) & 0xF0) | 0x03);
+   drv->send(( addr       & 0xF0) | 0x03);
+   drv->send(((addr << 4) & 0xF0) | 0x03); 
+   // Write Mode (CMD == 4)
+   drv->send(0x14); 
+   // Valid (CMD == 5)
+   drv->send(0x5);
+   // Read (CMD == 7)
+   drv->send(0x7);
+   // Check correct data read
+   sink->recieve(check);
 }
 
 int main(int argc, char** argv, char** env) {
@@ -61,11 +81,7 @@ int main(int argc, char** argv, char** env) {
    SramModel mF(logger); 
 
    write(&drv, 0x0000, 0xAB); 
-   write(&drv, 0x1000, 0xAB); 
-   write(&drv, 0x2000, 0xAB); 
-   write(&drv, 0x3000, 0xAB); 
-
-
+   read(&drv, &sink, 0x0000, 0xAB);  
 
    // Setup
    dut->trace(m_trace, 5);

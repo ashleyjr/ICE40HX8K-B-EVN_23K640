@@ -100,9 +100,7 @@ module x_driver_test (
    logic [7:0]    rdata_D;
    logic [7:0]    rdata_E;
    logic [7:0]    rdata_F;
-
-   assign advance = 1'b1;
-
+   
    x_uart_rx #(
       .p_clk_hz      (12000000   ),
       .p_baud        (115200     )
@@ -133,6 +131,7 @@ module x_driver_test (
       .i_test_data   (rx_data    ),
       .o_test_valid  (tx_valid   ),
       .o_test_data   (tx_data    ),     
+      .o_advance     (advance    ),
       .i_accept      (accept     ),
       .o_rd_n_wr     (rd_n_wr    ),
       .o_addr        (addr       ),

@@ -8,6 +8,8 @@ module x_driver #(
    input    logic [7:0]    i_test_data,
    output   logic          o_test_valid,
    output   logic [7:0]    o_test_data,
+   // Clock frequency
+   output   logic          o_advance,
    // 23K640 Side,
    output   logic          o_rd_n_wr,
    output   logic [15:0]   o_addr,
@@ -33,130 +35,117 @@ module x_driver #(
    input    logic [7:0]    i_rdata_E,
    input    logic [7:0]    i_rdata_F
 );
-   logic          sel_en;
-   logic [3:0]    sel_d;
-   logic [3:0]    sel_q;
-    
-   logic          wdata_en;
-   logic [7:0]    wdata_d; 
-   logic [7:0]    wdata_q; 
    
-   logic          rdata_en;
-   logic [7:0]    rdata_d; 
-   logic [7:0]    rdata_q; 
+   parameter valid_w  = 16;
+   parameter r_n_wr_w = 1;
+   parameter wdata_w  = 8;
+   parameter cmd_w    = valid_w + r_n_wr_w + wdata_w;
 
-   logic          rd_n_wr_en;
-   logic          rd_n_wr_d;
-   logic          rd_n_wr_q;
+   logic                any_accept;
 
-   logic          addr_en;
-   logic [15:0]   addr_d;
-   logic [15:0]   addr_q;
+   logic [valid_w-1:0]  cmd_valid;
+   logic [r_n_wr_w-1:0] cmd_rd_n_wr;
+   logic [wdata_w-1:0]  cmd_wdata;
+   logic [cmd_w-1:0]    cmd_d;
+   logic [cmd_w-1:0]    cmd_q;
 
-   logic          valid_start;
-   logic          valid_en;
-   logic          valid_d;
-   logic          valid_q;
+   logic                valid_en;
+   logic [valid_w-1:0]  valid_d;
+   logic [valid_w-1:0]  valid_q;
 
-   logic          test_rdata;
-   logic          valid_read;
+   logic                rd_n_wr_en;
+   logic                rd_n_wr_d;
+   logic                rd_n_wr_q;
 
+   logic                wdata_en;
+   logic [wdata_w-1:0]  wdata_d;
+   logic [wdata_w-1:0]  wdata_q;
 
-   // Select
-   assign sel_d = i_test_data[7:4];
-   
+   logic                top;
+   logic [6:0]          top_d;
+   logic [6:0]          top_q;
+   logic [6:0]          cnt_d;
+   logic [6:0]          cnt_q;
+
+   logic                cmd_en;
+   logic                top_en;
+   logic                exe_en;
+
+   // Helpers
+   assign any_accept = |i_accept;
+
+   // Commands
+   assign cmd_d = {cmd_q[cmd_w-4-1:0],i_test_data[7:4]}; 
+
    always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)         sel_q <= 'd0;
-      else if(sel_en)   sel_q <= sel_d;
+      if(i_rst)         cmd_q <= 'd0;
+      else if(cmd_en)   cmd_q <= cmd_d;
    end   
 
-   // Write Data
-   assign wdata_d = {wdata_q[3:0],i_test_data[7:4]};
+   assign {cmd_valid, cmd_rd_n_wr, cmd_wdata} = cmd_q;
    
-   always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)            wdata_q <= 'd0;
-      else if(wdata_en)    wdata_q <= wdata_d;
-   end   
- 
-   // Write Data
-   assign rdata_en = |i_ready;
+   // Hold valid and drop on accept 
+   assign valid_d = (any_accept) ? (~i_accept & valid_q) : cmd_valid;
 
-   always_comb begin 
-      rdata_d = i_rdata_0;
-      case(sel_q)
-         4'h1: rdata_d = i_rdata_1;
-         4'h2: rdata_d = i_rdata_2;
-         4'h3: rdata_d = i_rdata_3;
-         4'h4: rdata_d = i_rdata_4;
-         4'h5: rdata_d = i_rdata_5;
-         4'h6: rdata_d = i_rdata_6;
-         4'h7: rdata_d = i_rdata_7;
-         4'h8: rdata_d = i_rdata_8;
-         4'h9: rdata_d = i_rdata_9;
-         4'hA: rdata_d = i_rdata_A;
-         4'hB: rdata_d = i_rdata_B;
-         4'hC: rdata_d = i_rdata_C;
-         4'hD: rdata_d = i_rdata_D;
-         4'hE: rdata_d = i_rdata_E;
-         4'hF: rdata_d = i_rdata_F;
-         default:;
-      endcase
-   end
-    
-   always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)         rdata_q <= 'd0;
-      else if(rdata_en) rdata_q <= rdata_d;
-   end   
-    
-   // rd_n_wr
-   assign rd_n_wr_d = i_test_data[4];
-   
-   always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)            rd_n_wr_q <= 'd0;
-      else if(rd_n_wr_en)  rd_n_wr_q <= rd_n_wr_d;
-   end   
-   
-   // Address
-   assign addr_d = {addr_q[11:0],i_test_data[7:4]};
-   
-   always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)         addr_q <= 'd0;
-      else if(addr_en)  addr_q <= addr_d;
-   end   
-   
-   // Hold valid
-   assign valid_d = ~(|i_accept);
-
-   assign valid_en = valid_start | (|i_accept);
+   assign valid_en = exe_en | any_accept;
    
    always_ff@(posedge i_clk or posedge i_rst) begin
       if(i_rst)            valid_q <= 'd0;
       else if(valid_en)    valid_q <= valid_d;
    end   
    
-   // Decode 
-   assign sel_en      = (i_test_data[3:0] == 4'h0) & i_test_valid;
-   assign wdata_en    = (i_test_data[3:0] == 4'h1) & i_test_valid;
-   //assign rdata_en    = (i_test_data[3:0] == 4'h2) & i_test_valid;
-   assign addr_en     = (i_test_data[3:0] == 4'h3) & i_test_valid; 
-   assign rd_n_wr_en  = (i_test_data[3:0] == 4'h4) & i_test_valid; 
-   assign valid_start = (i_test_data[3:0] == 4'h5) & i_test_valid; 
-   assign test_rdata  = (i_test_data[3:0] == 4'h6) & i_test_valid; 
-   assign valid_read  = (i_test_data[3:0] == 4'h7) & i_test_valid; 
+   // Hold r_n_wr 
+   assign rd_n_wr_d = cmd_rd_n_wr;
+
+   assign rd_n_wr_en = exe_en;
    
+   always_ff@(posedge i_clk or posedge i_rst) begin
+      if(i_rst)            rd_n_wr_q <= 'd0;
+      else if(rd_n_wr_en)  rd_n_wr_q <= rd_n_wr_d;
+   end   
+   
+   // Hold wdata 
+   assign wdata_d = cmd_wdata;
+
+   assign wdata_en = exe_en;
+   
+   always_ff@(posedge i_clk or posedge i_rst) begin
+      if(i_rst)         wdata_q <= 'd0;
+      else if(wdata_en) wdata_q <= wdata_d;
+   end   
+    
+   // Advance strobe 
+   assign top_d = i_test_data[7:1];
+   
+   always_ff@(posedge i_clk or posedge i_rst) begin
+      if(i_rst)       top_q <= 'd0;
+      else if(top_en) top_q <= top_d;
+   end   
+ 
+   assign top = (cnt_q == top_q);
+
+   assign cnt_d = (top) ? 'd0 : (top_q + 'd1);
+
+   always_ff@(posedge i_clk or posedge i_rst) begin
+      if(i_rst)   cnt_q <= 'd0;
+      else        cnt_q <= cnt_d;
+   end   
+
+   // Decode test driver 
+   assign top_en = (i_test_data[0] == 1'b1) & i_test_valid;
+   assign cmd_en = (i_test_data[1] == 1'b1) & i_test_valid;
+   assign exe_en = (i_test_data[2] == 1'b1) & i_test_valid;
+
    // Drive Valid
-   assign o_valid = {15'd0,valid_q} << sel_q;  
+   assign o_advance = top;  
+
+   // Drive Valid
+   assign o_valid = valid_q;  
+
+   // Drive r_n_wr
+   assign o_rd_n_wr = rd_n_wr_q;
 
    // Drive write data
    assign o_wdata = wdata_q;
-
-   // Drive Read Not Write
-   assign o_rd_n_wr = rd_n_wr_q;
-
-   // o_test_valid
-   assign o_test_valid = test_rdata | valid_read;
-
-   // o_test_data
-   assign o_test_data = rdata_q;
-   
+  
 endmodule

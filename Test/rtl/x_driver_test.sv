@@ -77,6 +77,7 @@ module x_driver_test (
    logic          tx_valid;
    logic [7:0]    tx_data;
 
+   logic [7:0]    period;
    logic          advance; 
    logic          rd_n_wr;
    logic [15:0]   addr;
@@ -131,7 +132,7 @@ module x_driver_test (
       .i_test_data   (rx_data    ),
       .o_test_valid  (tx_valid   ),
       .o_test_data   (tx_data    ),     
-      .o_advance     (advance    ),
+      .o_period      (period     ),
       .i_accept      (accept     ),
       .o_rd_n_wr     (rd_n_wr    ),
       .o_addr        (addr       ),
@@ -159,6 +160,7 @@ module x_driver_test (
    x_23K640_sck u_s(
       .i_clk      (i_clk      ),
       .i_rst      (i_rst      ),     
+      .i_period   (period     ),
       .o_advance  (advance    ),
       .o_sck      (o_sck      )
    );

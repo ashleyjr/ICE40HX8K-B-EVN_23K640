@@ -9,7 +9,7 @@ module x_driver #(
    output   logic          o_test_valid,
    output   logic [7:0]    o_test_data,
    // Clock frequency
-   output   logic          o_advance,
+   output   logic [7:0]    o_period,
    // 23K640 Side,
    output   logic          o_rd_n_wr,
    output   logic [15:0]   o_addr,
@@ -37,15 +37,17 @@ module x_driver #(
 );
    
    parameter valid_w  = 16;
+   parameter addr_w   = 16;
    parameter r_n_wr_w = 1;
    parameter wdata_w  = 8;
-   parameter cmd_w    = valid_w + r_n_wr_w + wdata_w;
+   parameter cmd_w    = valid_w + r_n_wr_w + wdata_w + addr_w;
 
    logic                any_accept;
 
    logic [valid_w-1:0]  cmd_valid;
    logic [r_n_wr_w-1:0] cmd_rd_n_wr;
    logic [wdata_w-1:0]  cmd_wdata;
+   logic [addr_w-1:0]   cmd_addr;
    logic [cmd_w-1:0]    cmd_d;
    logic [cmd_w-1:0]    cmd_q;
 
@@ -61,11 +63,13 @@ module x_driver #(
    logic [wdata_w-1:0]  wdata_d;
    logic [wdata_w-1:0]  wdata_q;
 
+   logic                addr_en;
+   logic [addr_w-1:0]   addr_d;
+   logic [addr_w-1:0]   addr_q;
+
    logic                top;
    logic [6:0]          top_d;
    logic [6:0]          top_q;
-   logic [6:0]          cnt_d;
-   logic [6:0]          cnt_q;
 
    logic                cmd_en;
    logic                top_en;
@@ -82,7 +86,7 @@ module x_driver #(
       else if(cmd_en)   cmd_q <= cmd_d;
    end   
 
-   assign {cmd_valid, cmd_rd_n_wr, cmd_wdata} = cmd_q;
+   assign {cmd_rd_n_wr, cmd_valid, cmd_addr, cmd_wdata} = cmd_q;
    
    // Hold valid and drop on accept 
    assign valid_d = (any_accept) ? (~i_accept & valid_q) : cmd_valid;
@@ -114,22 +118,23 @@ module x_driver #(
       else if(wdata_en) wdata_q <= wdata_d;
    end   
     
+   // Hold address
+   assign addr_d = cmd_addr;
+
+   assign addr_en = exe_en;
+   
+   always_ff@(posedge i_clk or posedge i_rst) begin
+      if(i_rst)         addr_q <= 'd0;
+      else if(addr_en)  addr_q <= addr_d;
+   end   
+
    // Advance strobe 
    assign top_d = i_test_data[7:1];
    
    always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)       top_q <= 'd0;
+      if(i_rst)       top_q <= 'h7F;
       else if(top_en) top_q <= top_d;
-   end   
- 
-   assign top = (cnt_q == top_q);
-
-   assign cnt_d = (top) ? 'd0 : (top_q + 'd1);
-
-   always_ff@(posedge i_clk or posedge i_rst) begin
-      if(i_rst)   cnt_q <= 'd0;
-      else        cnt_q <= cnt_d;
-   end   
+   end    
 
    // Decode test driver 
    assign top_en = (i_test_data[0] == 1'b1) & i_test_valid;
@@ -137,7 +142,7 @@ module x_driver #(
    assign exe_en = (i_test_data[2] == 1'b1) & i_test_valid;
 
    // Drive Valid
-   assign o_advance = top;  
+   assign o_period = {1'b0,top_q};  
 
    // Drive Valid
    assign o_valid = valid_q;  
@@ -147,5 +152,8 @@ module x_driver #(
 
    // Drive write data
    assign o_wdata = wdata_q;
+    
+   // Drive address
+   assign o_addr = addr_q;
   
 endmodule

@@ -15,37 +15,44 @@
 #define CYCLES 100000
 
 
-void write(UartDriver * drv, uint16_t addr, uint8_t data){
-   // Select (CMD == 0)
-   // - Bit [15:12] of addr
-   drv->send((addr >> 8) & 0xF0);
-   // Load data (CMD == 1)
-   drv->send((data & 0xF0) | 0x01);
-   drv->send(((data << 4) & 0xF0) | 0x01);
-   // Load address (CMD == 3)
-   drv->send(((addr >> 4) & 0xF0) | 0x03);
-   drv->send(( addr       & 0xF0) | 0x03);
-   drv->send(((addr << 4) & 0xF0) | 0x03); 
-   // Read Mode (CMD == 4)
-   drv->send(0x4);
-   // Valid (CMD == 5)
-   drv->send(0x5);
+void write(UartDriver * drv, uint16_t sel, uint16_t addr, uint8_t data){ 
+   // - Clear the rd_n_wr bit
+   drv->send(0x02);
+   // Load the valid select
+   drv->send(((sel >> 8) & 0xF0) | 0x2);
+   drv->send(((sel >> 4) & 0xF0) | 0x2);
+   drv->send(((sel >> 0) & 0xF0) | 0x2);
+   drv->send(((sel << 4) & 0xF0) | 0x2);
+   // Load the addr select
+   drv->send(((addr >> 8) & 0xF0) | 0x2);
+   drv->send(((addr >> 4) & 0xF0) | 0x2);
+   drv->send(((addr >> 0) & 0xF0) | 0x2);
+   drv->send(((addr << 4) & 0xF0) | 0x2);
+   // Load the write data
+   drv->send(((data >> 0) & 0xF0) | 0x2);
+   drv->send(((data << 4) & 0xF0) | 0x2);
+   // Execute
+   drv->send(0x04);
 }
 
-void read(UartDriver * drv, UartSink * sink, uint16_t addr, uint8_t check){
-   // Select (CMD == 0)
-   // - Bit [15:12] of addr
-   drv->send((addr >> 8) & 0xF0);
-   // Load address (CMD == 3)
-   drv->send(((addr >> 4) & 0xF0) | 0x03);
-   drv->send(( addr       & 0xF0) | 0x03);
-   drv->send(((addr << 4) & 0xF0) | 0x03); 
-   // Write Mode (CMD == 4)
-   drv->send(0x14); 
-   // Valid (CMD == 5)
-   drv->send(0x5);
-   // Read (CMD == 7)
-   drv->send(0x7);
+void read(UartDriver * drv, UartSink * sink, uint16_t sel, uint16_t addr, uint8_t check){
+   // - Set the rd_n_wr bit
+   drv->send(0x12);
+   // Load the valid select
+   drv->send(((sel >> 8) & 0xF0) | 0x2);
+   drv->send(((sel >> 4) & 0xF0) | 0x2);
+   drv->send(((sel >> 0) & 0xF0) | 0x2);
+   drv->send(((sel << 4) & 0xF0) | 0x2);
+   // Load the addr select
+   drv->send(((addr >> 8) & 0xF0) | 0x2);
+   drv->send(((addr >> 4) & 0xF0) | 0x2);
+   drv->send(((addr >> 0) & 0xF0) | 0x2);
+   drv->send(((addr << 4) & 0xF0) | 0x2);
+   // Clear the write data
+   drv->send(0x2);
+   drv->send(0x2);
+   // Execute
+   drv->send(0x04);
    // Check correct data read
    sink->recieve(check);
 }
@@ -80,8 +87,8 @@ int main(int argc, char** argv, char** env) {
    SramModel mE(logger); 
    SramModel mF(logger); 
 
-   write(&drv, 0x0000, 0xAB); 
-   read(&drv, &sink, 0x0000, 0xAB);  
+   write(&drv, 0x0001, 0x0000, 0xAB); 
+   read(&drv, &sink, 0x0001, 0x0000, 0xAB);  
 
    // Setup
    dut->trace(m_trace, 5);
